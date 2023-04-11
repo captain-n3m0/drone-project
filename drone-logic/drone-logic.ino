@@ -92,4 +92,58 @@ void loop() {
   // Map receiver inputs to PID setpoints
   float pitch_setpoint = map(pitch_input, 0, 180, -30, 30);
   float altitude_setpoint = map(throttle_input, 1000, 2000, 0, 1023);
-  float yaw
+  float yaw_setpoint = map(yaw_input, 0, 180, -180, 180);
+
+// Compute PID errors
+  pitch_error = pitch_setpoint - pitch;
+  altitude_error = altitude_setpoint - analogRead(altitude_pin);
+  yaw_error = yaw_setpoint - yaw;
+
+// Compute PID outputs
+  pitch_integral += Ki_pitch * pitch_error;
+  altitude_integral += Ki_altitude * altitude_error;
+  yaw_integral += Ki_yaw * yaw_error;
+
+  pitch_derivative = Kd_pitch * (pitch_error - last_pitch_error);
+  altitude_derivative = Kd_altitude * (altitude_error - last_altitude_error);
+  yaw_derivative = Kd_yaw * (yaw_error - last_yaw_error);
+
+  pitch_pid_output = Kp_pitch * pitch_error + pitch_integral + pitch_derivative;
+  altitude_pid_output = Kp_altitude * altitude_error + altitude_integral + altitude_derivative;
+  yaw_pid_output = Kp_yaw * yaw_error + yaw_integral + yaw_derivative;
+
+// Update last error for next iteration
+  last_pitch_error = pitch_error;
+  last_altitude_error = altitude_error;
+  last_yaw_error = yaw_error;
+
+// Compute motor outputs
+  int motor1_output = throttle_input + pitch_pid_output + altitude_pid_output - yaw_pid_output;
+  int motor2_output = throttle_input - pitch_pid_output + altitude_pid_output + yaw_pid_output;
+  int motor3_output = throttle_input - pitch_pid_output - altitude_pid_output - yaw_pid_output;
+  int motor4_output = throttle_input + pitch_pid_output - altitude_pid_output + yaw_pid_output;
+
+// Limit motor outputs to valid range
+  motor1_output = constrain(motor1_output, 1000, 2000);
+  motor2_output = constrain(motor2_output, 1000, 2000);
+  motor3_output = constrain(motor3_output, 1000, 2000);
+  motor4_output = constrain(motor4_output, 1000, 2000);
+
+// Write motor outputs
+  analogWrite(motor1, motor1_output);
+  analogWrite(motor2, motor2_output);
+  analogWrite(motor3, motor3_output);
+  analogWrite(motor4, motor4_output);
+}
+
+// Function to shutdown motors in case of emergency
+  void emergencyShutdown() {
+  emergency_shutdown = true;
+}
+
+
+
+
+
+
+  
